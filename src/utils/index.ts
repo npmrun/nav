@@ -1,40 +1,20 @@
 // Copyright @ 2018-2021 xiejiahe. All rights reserved. MIT license.
+// See https://github.com/xjh22222228/nav
 
 import qs from 'qs'
 import config from '../../nav.config'
 import Clipboard from 'clipboard'
-import { INavProps, ISearchEngineProps } from '../types'
+import { INavFourProp, INavProps, ISearchEngineProps } from '../types'
 import * as db from '../../data/db.json'
-import { Target } from '@angular/compiler'
+import * as s from '../../data/search.json'
+import { STORAGE_KEY_MAP } from '../constants'
 
 export const websiteList = getWebsiteList()
 
 let total = 0
-const { lightThemeConfig, searchEngineList } = config
+const { lightThemeConfig } = config
 const { backgroundLinear } = lightThemeConfig
-
-export function debounce(func, wait, immediate) {
-  let timeout
-
-  return function () {
-    let context = this
-    let args = arguments
-
-    if (timeout) clearTimeout(timeout)
-
-    if (immediate) {
-      let callNow = !timeout
-      timeout = setTimeout(() => {
-        timeout = null
-      }, wait)
-      if (callNow) func.apply(context, args)
-    } else {
-      timeout = setTimeout(() => {
-        func.apply(context, args)
-      }, wait)
-    }
-  }
-}
+const searchEngineList: ISearchEngineProps[] = (s as any).default
 
 export function randomInt(max: number) {
   return Math.floor(Math.random() * max)
@@ -47,28 +27,42 @@ export function fuzzySearch(navList: INavProps[], keyword: string) {
     arr = arr || navList
 
     for (let i = 0; i < arr.length; i++) {
-
-      if (Array.isArray(arr[i].nav)) {
-        f(arr[i].nav)
+      const item = arr[i]
+      if (Array.isArray(item.nav)) {
+        f(item.nav)
       }
 
-      if (arr[i].name) {
-        const name = arr[i].name.toLowerCase()
-        const desc = arr[i].desc.toLowerCase()
-        const search = keyword.toLowerCase()
+      if (searchResultList[0].nav.length > 50) break
 
-        if (~name.indexOf(search) || ~desc.indexOf(search)) {
+      if (item.name) {
+        const name = item.name.toLowerCase()
+        const desc = item.desc.toLowerCase()
+        const url = item.url.toLowerCase()
+        const search = keyword.toLowerCase()
+        const urls = Object.values(item.urls || {})
+
+        if (name.includes(search) || desc.includes(search)) {
           try {
-            let result = Object.assign({}, arr[i])
+            let result = Object.assign({}, item)
             const regex = new RegExp(`(${keyword})`, 'i')
             result.name = result.name.replace(regex, `$1`.bold())
             result.desc = result.desc.replace(regex, `$1`.bold())
 
-            const idx = searchResultList[0].nav.findIndex(item => item.name === result.name)
-            if (idx === -1) {
+            const exists = searchResultList[0].nav.some(item => item.name === result.name)
+            if (!exists) {
               searchResultList[0].nav.push(result)
             }
           } catch (err) {}
+          continue
+        }
+
+        if (url?.includes?.(keyword.toLowerCase())) {
+          searchResultList[0].nav.push(item)
+        }
+
+        const find = urls.some((item: string) => item.includes(keyword))
+        if (find) {
+          searchResultList[0].nav.push(item)
         }
       }
     }
@@ -128,19 +122,25 @@ export function randomBgImg() {
   randomTimer = setInterval(setBg, 10000)
 }
 
-export function queryString() {
+export function queryString(): {
+  q: string
+  id: number,
+  page: number
+  [key: string]: any
+} {
   const { href } = window.location
   const search = href.slice(href.indexOf('?') + 1)
   const parseQs = qs.parse(search)
   let id = parseInt(parseQs.id) || 0
   let page = parseInt(parseQs.page) || 0
-  let localLocation = {}
 
   if (parseQs.id === undefined && parseQs.page === undefined) {
     try {
-      const location = window.localStorage.getItem('location')
+      const location = window.localStorage.getItem(STORAGE_KEY_MAP.location)
       if (location) {
-        localLocation = JSON.parse(location)
+        const localLocation = JSON.parse(location)
+        page = localLocation.page || 0
+        id = localLocation.id || 0
       }
     } catch {}
   }
@@ -162,16 +162,15 @@ export function queryString() {
     q: parseQs.q || '',
     id,
     page,
-    ...localLocation
   }
 }
 
 export function adapterWebsiteList(websiteList: any[], parentItem?: any) {
-  const now = new Date()
+  const createdAt = new Date().toISOString()
 
   for (let i = 0; i < websiteList.length; i++) {
     const item = websiteList[i]
-    item.createdAt ||= now.toISOString()
+    item.createdAt ||= createdAt
 
     if (Array.isArray(item.nav)) {
       adapterWebsiteList(item.nav, item)
@@ -183,6 +182,8 @@ export function adapterWebsiteList(websiteList: any[], parentItem?: any) {
       }
 
       item.urls ||= {}
+      item.rate ??= 5
+      item.top ??= false
     }
   }
 
@@ -193,11 +194,11 @@ export function getWebsiteList() {
   let webSiteList = adapterWebsiteList((db as any).default)
   const scriptElAll = document.querySelectorAll('script')
   const scriptUrl = scriptElAll[scriptElAll.length - 1].src
-  const storageScriptUrl = window.localStorage.getItem('s_url')
+  const storageScriptUrl = window.localStorage.getItem(STORAGE_KEY_MAP.s_url)
 
   // 检测到网站更新，清除缓存
   if (storageScriptUrl !== scriptUrl) {
-    const whiteList = ['token', 'IS_DARK']
+    const whiteList = [STORAGE_KEY_MAP.token, STORAGE_KEY_MAP.isDark]
     const len = window.localStorage.length
     for (let i = 0; i < len; i++) {
       const key = window.localStorage.key(i)
@@ -206,12 +207,12 @@ export function getWebsiteList() {
       }
       window.localStorage.removeItem(key)
     }
-    window.localStorage.setItem('s_url', scriptUrl)
+    window.localStorage.setItem(STORAGE_KEY_MAP.s_url, scriptUrl)
     return webSiteList
   }
 
   try {
-    const w = window.localStorage.getItem('website')
+    const w = window.localStorage.getItem(STORAGE_KEY_MAP.website)
     const json = JSON.parse(w)
     if (Array.isArray(json)) {
       webSiteList = json
@@ -224,7 +225,7 @@ export function getWebsiteList() {
 export function setWebsiteList(v?: INavProps[]) {
   v = v || websiteList
 
-  window.localStorage.setItem('website', JSON.stringify(v))
+  window.localStorage.setItem(STORAGE_KEY_MAP.website, JSON.stringify(v))
 }
 
 export function toggleCollapseAll(wsList?: INavProps[]): boolean {
@@ -248,7 +249,7 @@ export function toggleCollapseAll(wsList?: INavProps[]): boolean {
 export function setLocation() {
   const { page, id } = queryString()
 
-  window.localStorage.setItem('location', JSON.stringify({
+  window.localStorage.setItem(STORAGE_KEY_MAP.location, JSON.stringify({
     page,
     id
   }))
@@ -257,7 +258,7 @@ export function setLocation() {
 export function getDefaultSearchEngine(): ISearchEngineProps {
   let DEFAULT = (searchEngineList[0] || {}) as ISearchEngineProps
   try {
-    const engine = window.localStorage.getItem('engine');
+    const engine = window.localStorage.getItem(STORAGE_KEY_MAP.engine);
     if (engine) {
       DEFAULT = JSON.parse(engine)
     }
@@ -266,11 +267,11 @@ export function getDefaultSearchEngine(): ISearchEngineProps {
 }
 
 export function setDefaultSearchEngine(engine: ISearchEngineProps) {
-  window.localStorage.setItem('engine', JSON.stringify(engine))
+  window.localStorage.setItem(STORAGE_KEY_MAP.engine, JSON.stringify(engine))
 }
 
 export function isDark(): boolean {
-  const storageVal = window.localStorage.getItem('IS_DARK')
+  const storageVal = window.localStorage.getItem(STORAGE_KEY_MAP.isDark)
   const darkMode = window?.matchMedia?.('(prefers-color-scheme: dark)')?.matches
 
   if (!storageVal && darkMode) {
@@ -339,4 +340,96 @@ export function copyText(el: any, text: string): Promise<boolean> {
       resolve(false)
     });
   })
+}
+
+export async function isValidImg(url: string): Promise<boolean> {
+  if (!url) return false
+
+  if (url === 'null' || url === 'undefined') return false
+
+  const { protocol } = window.location
+
+  if (protocol === 'https:' && url.startsWith('http:')) return false
+
+  return new Promise(resolve => {
+    const img = document.createElement('img')
+    img.src = url
+    img.style.display = 'none'
+    img.onload = () => {
+      img.parentNode.removeChild(img)
+      resolve(true)
+    }
+    img.onerror = () => {
+      img.parentNode.removeChild(img)
+      resolve(false)
+    }
+    document.body.append(img)
+  })
+}
+
+export function deleteByWeb(data: INavFourProp) {
+  function f(arr: any[]) {
+    for (let i = 0; i < arr.length; i++) {
+      const item = arr[i]
+      if (item.name) {
+        if (
+          item.name === data.name &&
+          item.desc === data.desc &&
+          item.top === data.top &&
+          item.createdAt === data.createdAt
+        ) {
+          arr.splice(i, 1)
+          const { q } = queryString()
+          q && window.location.reload()
+          break
+        }
+        continue
+      }
+
+      if (Array.isArray(item.nav)) {
+        f(item.nav)
+      }
+    }
+  }
+
+  f(websiteList)
+  setWebsiteList(websiteList)
+}
+
+export function updateByWeb(prevData: INavFourProp, nextData: INavFourProp) {
+  const keys = Object.keys(nextData)
+
+  function f(arr: any[]) {
+    for (let i = 0; i < arr.length; i++) {
+      const item = arr[i]
+      if (item.name) {
+        if (
+          item.name === prevData.name &&
+          item.desc === prevData.desc &&
+          item.top === prevData.top &&
+          item.createdAt === prevData.createdAt
+        ) {
+          for (let k of keys) {
+            item[k] = nextData[k]
+          }
+          break
+        }
+        continue
+      }
+
+      if (Array.isArray(item.nav)) {
+        f(item.nav)
+      }
+    }
+  }
+
+  f(websiteList)
+  setWebsiteList(websiteList)
+}
+
+export function getTextContent(value: string): string {
+  if (!value) return ''
+  const div = document.createElement('div')
+  div.innerHTML = value
+  return div.textContent
 }

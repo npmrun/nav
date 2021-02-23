@@ -1,9 +1,11 @@
 // Copyright @ 2018-2021 xiejiahe. All rights reserved. MIT license.
 
-import config from '../../../nav.config'
+import hotkeys from 'hotkeys-js'
 import { Component } from '@angular/core'
 import { getDefaultSearchEngine, setDefaultSearchEngine, queryString } from '../../utils'
 import { Router } from '@angular/router'
+import * as searchEngineList from '../../../data/search.json'
+import { ISearchEngineProps } from '../../types'
 
 @Component({
   selector: 'app-search-engine',
@@ -11,7 +13,7 @@ import { Router } from '@angular/router'
   styleUrls: ['./search-engine.component.scss']
 })
 export class SearchEngineComponent {
-  searchEngineList = config.searchEngineList
+  searchEngineList: ISearchEngineProps[] = (searchEngineList as any).default
   currentEngine = getDefaultSearchEngine()
   showEngine = false
   keyword = queryString().q
@@ -31,6 +33,14 @@ export class SearchEngineComponent {
     document.addEventListener('click', () => {
       this.toggleEngine(null, false)
     })
+
+    hotkeys('enter', () => {
+      this.inputFocus()
+    })
+  }
+
+  ngOnDestroy() {
+    hotkeys.unbind()
   }
 
   toggleEngine(e?: Event, isShow?: boolean) {
@@ -45,7 +55,7 @@ export class SearchEngineComponent {
   }
 
   clickEngineItem(index) {
-    this.currentEngine = config.searchEngineList[index]
+    this.currentEngine = this.searchEngineList[index]
     this.toggleEngine()
     this.inputFocus()
     setDefaultSearchEngine(this.currentEngine)

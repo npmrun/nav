@@ -17,7 +17,6 @@ import { NzFormModule } from 'ng-zorro-antd/form'
 import { NzEmptyModule } from 'ng-zorro-antd/empty'
 import { NzButtonModule } from 'ng-zorro-antd/button'
 import { ReactiveFormsModule } from '@angular/forms'
-import { NzAvatarModule } from 'ng-zorro-antd/avatar'
 import { NzPopconfirmModule } from 'ng-zorro-antd/popconfirm'
 import { NzDropDownModule } from 'ng-zorro-antd/dropdown'
 import { NzToolTipModule } from 'ng-zorro-antd/tooltip'
@@ -28,7 +27,10 @@ import { NzLayoutModule } from 'ng-zorro-antd/layout'
 import { NzMenuModule } from 'ng-zorro-antd/menu'
 import { NzTableModule } from 'ng-zorro-antd/table'
 import { NzTabsModule } from 'ng-zorro-antd/tabs'
-import { NzDividerModule } from 'ng-zorro-antd/divider'
+import { NzTagModule } from 'ng-zorro-antd/tag'
+import { NzRateModule } from 'ng-zorro-antd/rate'
+import { NzSwitchModule } from 'ng-zorro-antd/switch'
+import { DragDropModule } from '@angular/cdk/drag-drop'
 
 // components
 import { AppComponent } from './app.component'
@@ -40,12 +42,14 @@ import AdminComponent from '../view/admin/index.component'
 import SideComponent from '../view/index/side/index.component'
 import WebpComponent from '../view/app/default/app.component'
 import { FixbarComponent } from '../components/fixbar/index.component'
-import { MultipleSiteComponent } from '../components/multiple-site/index.component'
 import { FooterComponent } from '../components/footer/footer.component'
 import { IconGitComponent } from '../components/icon-git/icon-git.component'
 import { NoDataComponent } from '../components/no-data/no-data.component'
 import { SearchEngineComponent } from '../components/search-engine/search-engine.component';
-import { CreateComponent } from '../components/create/create.component';
+import { LoginComponent } from '../components/login/login.component';
+import { CreateWebComponent } from '../components/create-web/index.component';
+import { ToolbarTitleWebComponent } from '../components/toolbar-title/index.component';
+import { WebListComponent } from '../components/web-list/index.component';
 import { NZ_I18N } from 'ng-zorro-antd/i18n';
 import { zh_CN } from 'ng-zorro-antd/i18n';
 import { registerLocaleData } from '@angular/common';
@@ -96,12 +100,14 @@ const appRoutes: Routes = [
     AdminComponent,
     WebpComponent,
     FixbarComponent,
-    MultipleSiteComponent,
     FooterComponent,
     IconGitComponent,
     NoDataComponent,
     SearchEngineComponent,
-    CreateComponent,
+    LoginComponent,
+    CreateWebComponent,
+    ToolbarTitleWebComponent,
+    WebListComponent,
     LogoComponent,
     CardComponent
   ],
@@ -116,7 +122,6 @@ const appRoutes: Routes = [
     NzEmptyModule,
     NzButtonModule,
     ReactiveFormsModule,
-    NzAvatarModule,
     NzPopconfirmModule,
     NzDropDownModule,
     NzToolTipModule,
@@ -127,7 +132,10 @@ const appRoutes: Routes = [
     NzMenuModule,
     NzTableModule,
     NzTabsModule,
-    NzDividerModule,
+    NzTagModule,
+    NzRateModule,
+    NzSwitchModule,
+    DragDropModule,
     BrowserModule,
     FormsModule,
     RouterModule.forRoot(

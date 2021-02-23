@@ -1,9 +1,11 @@
 import { IConfig } from './src/types'
 
-// 网站 LOGO 替换根目录下的 logo.png， 务必为 png 后缀
 const c: IConfig = {
   // [必填], 请填写您的仓库地址
   gitRepoUrl: 'https://github.com/npmrun/nav',
+
+  // 部署分支
+  branch: 'main',
 
   // 路由是否Hash模式, 如果是部署在github pages 务必设为 true
   hashMode: true,
@@ -20,51 +22,8 @@ const c: IConfig = {
   // 网站关键字
   keywords: '导航,前端资源,社区站点,设计师,实用工具,学习资源,运营,网络安全,node.js',
 
-  // 默认主题: Light | Sim | Side
+  // 默认主题: Light | Sim | Side | App
   theme: 'Light',
-
-  // 搜索引擎列表, 为空时不显示搜索引擎
-  // 自定义引擎 icon 请使用网络图标
-  searchEngineList: [
-    {
-      name: '站内',
-      icon: 'assets/logo.png',
-      placeholder: '站内搜索'
-    },
-    {
-      name: '百度',
-      url: 'https://www.baidu.com/s?wd=',
-      icon: 'assets/engine/baidu.svg',
-      placeholder: '百度一下'
-    },
-    {
-      name: 'Google',
-      url: 'https://www.google.com/search?q=',
-      icon: 'assets/engine/google.svg',
-    },
-    {
-      name: '必应',
-      url: 'https://cn.bing.com/search?q=',
-      icon: 'assets/engine/bing.svg',
-    },
-    {
-      name: 'GitHub',
-      url: 'https://github.com/search?q=',
-      icon: 'assets/engine/github.svg',
-      placeholder: 'Search GitHub'
-    },
-    {
-      name: '知乎',
-      url: 'https://www.zhihu.com/search?type=content&q=',
-      icon: 'assets/engine/zhihu.svg',
-    },
-    {
-      name: '豆瓣',
-      url: 'https://search.douban.com/book/subject_search?search_text=',
-      icon: 'assets/engine/douban.svg',
-      placeholder: '书名、作者、ISBN'
-    }
-  ],
 
   // 网站底部内容, 版权信息、备案号, 可以是 HTML
   footerContent: `
@@ -116,9 +75,8 @@ const c: IConfig = {
   // Sim 主题配置
   simThemeConfig: {
     // 海报图
-    // 请不要放在项目里头, 填写Url
     posterImageUrls: [
-      'assets/img/wallpaper.jpg'
+      'https://raw.sevencdn.com/xjh22222228/nav/image/sim-wallpaper.jpg'
     ],
     description: '这里收录多达 <b>${total}</b> 个优质网站， 助您工作、学习和生活'
   }

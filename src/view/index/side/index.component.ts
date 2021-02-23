@@ -4,7 +4,7 @@
 import config from '../../../../nav.config'
 import { Component } from '@angular/core'
 import { Router, ActivatedRoute } from '@angular/router'
-import { INavProps, INavThreeProp } from '../../../types'
+import { INavProps, INavThreeProp, ISearchEngineProps } from '../../../types'
 import {
   fuzzySearch,
   queryString,
@@ -12,6 +12,10 @@ import {
   toggleCollapseAll,
 } from '../../../utils'
 import { websiteList } from '../../../store'
+import { LOGO_CDN } from '../../../constants'
+import * as s from '../../../../data/search.json'
+
+const searchEngineList: ISearchEngineProps[] = (s as any).default
 
 @Component({
   selector: 'app-home',
@@ -19,14 +23,18 @@ import { websiteList } from '../../../store'
   styleUrls: ['./index.component.scss']
 })
 export default class HomeComponent {
-
-  constructor (private router: Router, private activatedRoute: ActivatedRoute) {}
-
+  LOGO_CDN = LOGO_CDN
   websiteList: INavProps[] = websiteList
   currentList: INavThreeProp[] = []
   id: number = 0
   page: number = 0
   title: string = config.title.trim().split(/\s/)[0]
+  openIndex = queryString().page
+  contentEl: HTMLElement
+  searchEngineList = searchEngineList
+  marginTop: number = 50
+
+  constructor (private router: Router, private activatedRoute: ActivatedRoute) {}
 
   ngOnInit() {
     const initList = () => {
@@ -56,6 +64,29 @@ export default class HomeComponent {
     })
   }
 
+  ngAfterViewInit() {
+    window.addEventListener('scroll', this.scroll)
+
+    const headerEl = document.querySelector('.search-header')
+    this.marginTop = headerEl.clientHeight
+  }
+
+  ngOnDestroy() {
+    window.removeEventListener('scroll', this.scroll)
+  }
+
+  scroll() {
+    const y = window.scrollY
+    if (!this.contentEl) {
+      this.contentEl = document.getElementById('content')
+    }
+    if (y > 30) {
+      this.contentEl.classList.add('fixed')
+    } else {
+      this.contentEl.classList.remove('fixed')
+    }
+  }
+
   handleSidebarNav(page, id) {
     this.websiteList[page].id = id
     this.router.navigate([this.router.url.split('?')[0]], { 
@@ -64,6 +95,7 @@ export default class HomeComponent {
         id,
       }
     })
+    window.scrollTo(0, 0)
   }
 
   onCollapse = (item, index) => {

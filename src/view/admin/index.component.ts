@@ -2,16 +2,22 @@
 // See https://github.com/xjh22222228/nav
 
 import { Component } from '@angular/core'
-import { INavProps, INavTwoProp, INavThreeProp, INavFourProp } from '../../types'
+import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop'
+import { INavProps, INavTwoProp, INavThreeProp, INavFourProp, ITagProp } from '../../types'
 import { websiteList } from '../../store'
 import { getToken } from '../../utils/user'
 import { NzMessageService } from 'ng-zorro-antd/message'
 import { NzModalService } from 'ng-zorro-antd/modal'
 import { NzNotificationService } from 'ng-zorro-antd/notification'
 import { FormBuilder, FormGroup, Validators } from '@angular/forms'
-import { setWebsiteList, getLogoUrl } from '../../utils'
+import { setWebsiteList } from '../../utils'
 import { updateFileContent } from '../../services'
-import { DB_PATH } from '../../constants'
+import { DB_PATH, LOGO_PATH, LOGO_CDN, STORAGE_KEY_MAP } from '../../constants'
+import { parseBookmark } from '../../utils/bookmark'
+import * as __tag from '../../../data/tag.json'
+import config from '../../../nav.config'
+
+const tagMap: ITagProp = (__tag as any).default
 
 @Component({
   selector: 'app-admin',
@@ -21,16 +27,22 @@ import { DB_PATH } from '../../constants'
 export default class WebpComponent {
   validateForm!: FormGroup;
   websiteList: INavProps[] = websiteList
+  gitRepoUrl = config.gitRepoUrl
+  LOGO_CDN = LOGO_CDN
   isLogin = !!getToken()
   showCreateModal = false
+  showCreateWebModal = false
   syncLoading = false
+  uploading = false
   tabActive = 0
   editIdx = 0
   isEdit = false
   oneSelect = ''
   twoSelect = ''
   threeSelect = ''
-  iconUrl = ''
+  tagMap = tagMap
+  objectKeys = Object.keys
+  websiteDetail: INavFourProp|null
 
   twoTableData: INavTwoProp[] = []
   threeTableData: INavThreeProp[] = []
@@ -46,22 +58,99 @@ export default class WebpComponent {
   ngOnInit () {
     this.validateForm = this.fb.group({
       title: ['', [Validators.required]],
-      url: ['', [Validators.required]],
       icon: [''],
-      desc: [''],
-    });
+    })
+  }
+
+  onBookChange(e) {
+    const that = this
+    const { files } = e.target
+    if (files.length <= 0) return;
+    const file = files[0]
+    const fileReader = new FileReader()
+    fileReader.readAsText(file)
+    fileReader.onload = function() {
+      const html = this.result as string
+      const result = parseBookmark(html)
+      if (!Array.isArray(result)) {
+        that.notification.error(
+          `错误: 书签解析失败`,
+          `${result?.message ?? ''}`
+        )
+      } else {
+        that.message.success('导入成功，2秒后刷新！')
+        that.websiteList = result
+        setWebsiteList(that.websiteList)
+        setTimeout(() => window.location.reload(), 2000)
+      }
+    }
+  }
+
+  onLogoChange(e) {
+    const that = this
+    const { files } = e.target
+    if (files.length <= 0) return;
+    const file = files[0]
+
+    if (file.type !== 'image/png') {
+      return this.message.error('仅支持 PNG 格式')
+    }
+
+    const fileReader = new FileReader()
+    fileReader.readAsDataURL(file)
+    fileReader.onload = function() {
+      that.uploading = true
+      const url = (this.result as string).split(',')[1]
+      const logoEL = document.querySelector('.logo') as HTMLImageElement
+      const tempSrc = logoEL.src
+      logoEL.src = this.result as string
+
+      updateFileContent({
+        message: 'update logo',
+        content: url,
+        isEncode: false,
+        path: LOGO_PATH,
+        branch: 'image'
+      }).then(() => {
+        that.message.success('更换成功, 由于CDN缓存问题预计至少需要10分钟才能看到最新')
+      }).catch(res => {
+        logoEL.src = tempSrc
+        that.notification.error(
+          `错误: ${res?.response?.status ?? 401}`,
+          `${res?.response?.data?.message ?? '更换LOGO失败，请重试！'}`
+        )
+      }).finally(() => {
+        that.uploading = false
+      })
+    }
   }
 
   handleReset() {
-    this.message.success('数据已重置回初始状态')
-    window.localStorage.removeItem('website')
-    setTimeout(() => {
-      window.location.reload()
-    }, 1500)
+    this.modal.info({
+      nzTitle: '重置初始数据',
+      nzOkText: '确定重置',
+      nzContent: '所有数据将还原初始状态，不可撤销！',
+      nzOnOk: () => {
+        this.message.success('数据已重置回初始状态')
+        window.localStorage.removeItem(STORAGE_KEY_MAP.website)
+        setTimeout(() => {
+          window.location.reload()
+        }, 1500)
+      }
+    });
   }
 
   goBack() {
     history.go(-1)
+  }
+
+  toggleCreateWebModal() {
+    if (this.tabActive === 3 && !this.threeSelect) {
+      return this.message.error('请选择三级分类')
+    }
+
+    this.websiteDetail = null
+    this.showCreateWebModal = !this.showCreateWebModal
   }
 
   toggleCreateModal() {
@@ -73,14 +162,30 @@ export default class WebpComponent {
       if (this.tabActive === 2 && !this.twoSelect) {
         return this.message.error('请选择二级分类')
       }
-      if (this.tabActive === 3 && !this.threeSelect) {
-        return this.message.error('请选择三级分类')
-      }
     }
 
     this.isEdit = false
     this.showCreateModal = !this.showCreateModal
     this.validateForm.reset()
+  }
+
+  onOkCreateWeb(payload: INavFourProp) {
+    // 编辑
+    if (this.websiteDetail) {
+      this.websiteTableData[this.editIdx] = payload
+    } else {
+      // 创建
+      const exists = this.websiteTableData.some(item => item.name === payload.name)
+      if (exists) {
+        return this.message.error('请不要重复添加')
+      }
+
+      this.websiteTableData.unshift(payload)
+      this.message.success('新增成功!')
+    }
+
+    setWebsiteList(this.websiteList)
+    this.toggleCreateWebModal()
   }
 
   onTabChange(index: number) {
@@ -98,35 +203,15 @@ export default class WebpComponent {
     setWebsiteList(this.websiteList)
   }
 
-  // 一级分类上移
-  handleOneMoveUp(idx) {
-    const copyItem = JSON.parse(JSON.stringify(this.websiteList[idx]))
-    this.websiteList.splice(idx, 1)
-    this.websiteList.splice(idx - 1, 0, copyItem)
+  // 拖拽一级分类
+  dropOne(event: CdkDragDrop<string[]>): void {
+    moveItemInArray(this.websiteList, event.previousIndex, event.currentIndex);
     setWebsiteList(this.websiteList)
   }
 
-  // 一级分类下移
-  handleOneMoveDown(idx) {
-    const copyItem = JSON.parse(JSON.stringify(this.websiteList[idx]))
-    this.websiteList.splice(idx, 1)
-    this.websiteList.splice(idx + 1, 0, copyItem)
-    setWebsiteList(this.websiteList)
-  }
-
-  // 二级分类上移
-  handleTwoMoveUp(idx) {
-    const copyItem = JSON.parse(JSON.stringify(this.twoTableData[idx]))
-    this.twoTableData.splice(idx, 1)
-    this.twoTableData.splice(idx - 1, 0, copyItem)
-    setWebsiteList(this.websiteList)
-  }
-
-  // 二级分类下移
-  handleTwoMoveDown(idx) {
-    const copyItem = JSON.parse(JSON.stringify(this.twoTableData[idx]))
-    this.twoTableData.splice(idx, 1)
-    this.twoTableData.splice(idx + 1, 0, copyItem)
+  // 拖拽二级分类
+  dropTwo(event: CdkDragDrop<string[]>): void {
+    moveItemInArray(this.twoTableData, event.previousIndex, event.currentIndex);
     setWebsiteList(this.websiteList)
   }
 
@@ -141,19 +226,9 @@ export default class WebpComponent {
     setWebsiteList(this.websiteList)
   }
 
-  // 三级分类上移
-  handleThreeMoveUp(idx) {
-    const copyItem = JSON.parse(JSON.stringify(this.threeTableData[idx]))
-    this.threeTableData.splice(idx, 1)
-    this.threeTableData.splice(idx - 1, 0, copyItem)
-    setWebsiteList(this.websiteList)
-  }
-
-  // 三级分类下移
-  handleThreeMoveDown(idx) {
-    const copyItem = JSON.parse(JSON.stringify(this.threeTableData[idx]))
-    this.threeTableData.splice(idx, 1)
-    this.threeTableData.splice(idx + 1, 0, copyItem)
+  // 拖拽三级分类
+  dropThree(event: CdkDragDrop<string[]>): void {
+    moveItemInArray(this.threeTableData, event.previousIndex, event.currentIndex);
     setWebsiteList(this.websiteList)
   }
 
@@ -168,19 +243,9 @@ export default class WebpComponent {
     setWebsiteList(this.websiteList)
   }
 
-  // 网站上移
-  handleWebsiteMoveUp(idx) {
-    const copyItem = JSON.parse(JSON.stringify(this.websiteTableData[idx]))
-    this.websiteTableData.splice(idx, 1)
-    this.websiteTableData.splice(idx - 1, 0, copyItem)
-    setWebsiteList(this.websiteList)
-  }
-
-  // 网站下移
-  handleWebsiteMoveDown(idx) {
-    const copyItem = JSON.parse(JSON.stringify(this.websiteTableData[idx]))
-    this.websiteTableData.splice(idx, 1)
-    this.websiteTableData.splice(idx + 1, 0, copyItem)
+  // 拖拽网站
+  dropWebsite(event: CdkDragDrop<string[]>): void {
+    moveItemInArray(this.websiteTableData, event.previousIndex, event.currentIndex);
     setWebsiteList(this.websiteList)
   }
 
@@ -216,25 +281,13 @@ export default class WebpComponent {
     this.websiteTableData = findItem.nav
   }
 
-  async onUrlBlur(e) {
-    const res = await getLogoUrl(e.target?.value)
-    this.iconUrl = (res || '') as string
-    this.validateForm.get('icon')!.setValue(res || '')
-  }
-
-  onIconBlur(e) {
-    this.iconUrl = e.target.value
-  }
-
   handleEditBtn(data, editIdx) {
-    let { title, icon, url, desc, name } = data
+    let { title, icon, name } = data
     this.toggleCreateModal()
     this.isEdit = true
     this.editIdx = editIdx
     this.validateForm.get('title')!.setValue(title || name || '')
     this.validateForm.get('icon')!.setValue(icon || '')
-    this.validateForm.get('url')!.setValue(url || '')
-    this.validateForm.get('desc')!.setValue(desc || '')
   }
 
   handleSync() {
@@ -267,19 +320,16 @@ export default class WebpComponent {
   }
 
   handleOk() {
-    const now = new Date()
-    const createdAt = now.toISOString()
+    const createdAt = new Date().toISOString()
 
     for (const i in this.validateForm.controls) {
       this.validateForm.controls[i].markAsDirty();
       this.validateForm.controls[i].updateValueAndValidity();
     }
 
-    let { title, icon, url, desc } = this.validateForm.value
+    let { title, icon } = this.validateForm.value
 
-    if (!title) {
-      return
-    }
+    if (!title) return
 
     if (this.isEdit) {
       switch (this.tabActive) {
@@ -301,16 +351,6 @@ export default class WebpComponent {
         case 2: {
           this.threeTableData[this.editIdx].title = title
           this.threeTableData[this.editIdx].icon = icon
-        }
-          break
-  
-        // 编辑网站
-        case 3: {
-          if (!url) return
-          this.websiteTableData[this.editIdx].name = title
-          this.websiteTableData[this.editIdx].desc = desc
-          this.websiteTableData[this.editIdx].url = url
-          this.websiteTableData[this.editIdx].icon = icon
         }
           break
       }
@@ -365,30 +405,10 @@ export default class WebpComponent {
           })
         }
           break
-  
-        // 新增网站
-        case 3: {
-          if (!url) return
-          const exists = this.websiteTableData.some(item => item.name === title)
-          if (exists) {
-            return this.message.error('请不要重复添加')
-          }
-  
-          this.websiteTableData.unshift({
-            createdAt,
-            name: title,
-            icon,
-            url,
-            desc,
-            urls: {}
-          })
-        }
-          break
       }
       this.message.success('新增成功!')
     }
 
-    this.iconUrl = ''
     this.validateForm.reset()
     this.toggleCreateModal()
     setWebsiteList(this.websiteList)

@@ -1,18 +1,30 @@
 // Copyright @ 2018-2021 xiejiahe. All rights reserved. MIT license.
+// See https://github.com/xjh22222228/nav
 
 export type ThemeType =
   | 'Light'
   | 'Sim'
   | 'Side'
+  | 'App'
+
+export interface ITagProp {
+  [tagName: string]: {
+    color: string
+    createdAt: string
+    desc?: string
+  }
+}
 
 export interface INavFourProp {
   icon?: string | null
   createdAt?: string
+  rate?: number
+  top?: boolean
   name: string
   desc: string
-  url?: string
+  url: string
   urls?: {
-    [key: string]: string
+    [tagName: string]: string
   }
 }
 
@@ -20,7 +32,6 @@ export interface INavThreeProp {
   title?: string
   icon?: string | null
   createdAt?: string
-  showSideIcon?: boolean
   collapsed?: boolean
   nav: INavFourProp[]
 }
@@ -46,20 +57,22 @@ export interface ISearchEngineProps {
   url?: string
   icon: string | null
   placeholder?: string
+  blocked: boolean
 }
 
 export interface IConfig {
   gitRepoUrl: string
+  branch: string
   hashMode: boolean
   homeUrl?: string
   title: string
   description: string
   keywords: string
   theme: ThemeType
-  searchEngineList: ISearchEngineProps[]
   footerContent?: string|null
   baiduStatisticsUrl?: string
   cnzzStatisticsUrl?: string
+  showGithub: boolean
 
   lightThemeConfig: {
     backgroundLinear: string[]
