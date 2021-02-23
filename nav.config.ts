@@ -12,7 +12,7 @@ const c: IConfig = {
   homeUrl: 'https://npmrun.github.io/nav',
 
   // 网站标题
-  title: '北斗-指引黑暗中方向的明灯',
+  title: '北斗',
 
   // 网站描述
   description: '北斗-指引黑暗中方向的明灯',
