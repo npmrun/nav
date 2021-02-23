@@ -22,22 +22,13 @@
 <br />
 
 
-## 选择版本
-目前有2个版本供选择, [v3](https://github.com/xjh22222228/nav/tree/v3) 和 `v5`, 这2个版本都会长期维护:
-
-- v5 - 也就是当前分支, 需要依赖于Github配置, 提供自动维护数据功能(微后台)，但必须Fork到自己仓库里。
-- v3 - 无需依赖Github, 您可以将代码部署在任意服务器, 但数据需要手工维护。
-
-作者推荐您选择 `v5` 没有太多的心智负担。
-
-
-
 ## 预览
 **主题**
 
 - [Sim 在线预览](https://nav3.cn/#/sim)
 - [Light 在线预览](https://nav3.cn/#/light)
 - [Side 在线预览](https://nav3.cn/#/side)
+- [App 在线预览](https://nav3.cn/#/app)
 
 ![Preview](https://raw.githubusercontent.com/xjh22222228/public/gh-pages/nav/1.png)
 ![Preview](https://raw.githubusercontent.com/xjh22222228/public/gh-pages/nav/2.png)
@@ -47,25 +38,43 @@
 
 
 
+## 在线体验
+提供了一个测试在线体验，与最新版本保持同步，请文明体验：
 
-## 拥有出色的特性
+Token: `a4f80afe5c320ada53459b7e64635f6936cede98`
+
+访问以下任意一个网址：
+- [https://nav-git-main.vacuum2021.vercel.app/](https://nav-git-main.vacuum2021.vercel.app/)
+- [https://nav.vacuum2021.vercel.app/](https://nav.vacuum2021.vercel.app/)
+- [https://nav-beta.vercel.app/](https://nav-beta.vercel.app/)
+- [https://vacuum2021.github.io/nav/](https://vacuum2021.github.io/nav/)
+
+
+
+
+
+
+
+## 特性
 `发现导航` 的理念就是做一款无需依赖后端服务既简单又方便，没有繁杂的配置和数据库等配置概念, 做到开箱即用。
 
 - 🍰 内置 `800+` 实用网站。
-- 🍰 支持SEO, 没有可不行。
+- 🍰 支持 SEO。
 - 🍰 完全纯静态, 提供自动化部署功能。
 - 🍰 三叉树分类、结构清晰、分类清晰。
+- 🍰 支持一个网站关联多个网址
 - 🍰 颜值与简约并存，不再是杀马特时代。
+- 🍰 完全开源，轻松定制化。
 - 🍰 支持多种浏览模式，创新。
 - 🍰 支持足迹记忆。
 - 🍰 支持移动端浏览。
 - 🍰 支持搜索查询。
 - 🍰 支持自定义引擎搜索。
-- 🍰 完全开源，轻松定制化。
 - 🍰 多款主题切换。
 - 🍰 支持暗黑模式。
 - 🍰 支持快捷键操作，一步到位。
-- 🍰 支持在线新增数据, 没有传统的后台概念。
+- 🍰 支持后台管理, 无需部署。
+- 🍰 支持从Chrome书签导入
 
 
 
@@ -76,7 +85,7 @@
 
 2、[https://github.com/settings/tokens](https://github.com/settings/tokens) 申请 token, 勾选相应的权限, 如果不懂就全部选中，复制并保存Token。
 
-3、到 https://github.com/用户名/nav/settings/secrets/new  添加刚刚申请的token， name填写 `TOKEN` 大写。
+3、https://github.com/用户名/nav/settings/secrets/actions/new  添加申请的token， name填写 `TOKEN` 大写。
 
 4、打开 https://github.com/用户名/nav/actions 点击 `绿色按钮`
 
@@ -101,14 +110,19 @@ server {
 ```
 
 
-## 配置
-所有可配置位于文件 `nav.config.ts`。
+## 书签导入
+支持从 Chrome 书签导入（WebKit内核应该都是支持的~），会自动检测满足三级分类的导航，其他一律跳过：
+
+![](https://raw.githubusercontent.com/xjh22222228/public/gh-pages/nav/import.png)
+
+浏览器打开 [chrome://bookmarks/](chrome://bookmarks/) 导出书签得到 html 文件, 接着从导航网站后台导入即可。
 
 
 
 
-## 关于升级
-在升级之前请保存根目录下的 `data` 文件夹,最好把 `nav.config.ts` 配置文件也保存一份以防万一, 升级完后替换即可。
+
+## 升级
+在升级之前请备份根目录下的 `data` 文件夹和 `nav.config.ts`, 升级完后替换即可。
 
 点击右上角 `Watch` 按钮第一时间跟踪版本升级。
 
@@ -188,4 +202,5 @@ Thank you for your [contribution](https://github.com/xjh22222228/nav/issues), me
 | 姓名    | 支持金额              |
 | --------------------------------------- |----------- |
 | [aiyou9](https://github.com/aiyou9)     | ￥20.00     |
+| 路人甲     | ￥50.00     |
 

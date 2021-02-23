@@ -2,7 +2,8 @@
 // See https://github.com/xjh22222228/nav
 
 import hotkeys from 'hotkeys-js'
-import { Component, Output, EventEmitter, Input } from '@angular/core'
+import config from '../../../nav.config'
+import { Component, Output, EventEmitter, Input, ChangeDetectionStrategy } from '@angular/core'
 import { isDark as isDarkFn, randomBgImg, queryString } from '../../utils'
 import { NzModalService } from 'ng-zorro-antd/modal'
 import { NzMessageService } from 'ng-zorro-antd/message'
@@ -10,14 +11,15 @@ import { NzNotificationService } from 'ng-zorro-antd/notification'
 import { getToken } from '../../utils/user'
 import { updateFileContent } from '../../services'
 import { websiteList } from '../../store'
-import { DB_PATH, KEY_MAP, VERSION } from '../../constants'
+import { DB_PATH, KEY_MAP, VERSION, STORAGE_KEY_MAP } from '../../constants'
 import { Router, ActivatedRoute } from '@angular/router'
 import { setAnnotate } from '../../utils/ripple'
 
 @Component({
   selector: 'app-fixbar',
   templateUrl: './index.component.html',
-  styleUrls: ['./index.component.scss']
+  styleUrls: ['./index.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class FixbarComponent {
   @Input() collapsed: boolean
@@ -41,6 +43,10 @@ export class FixbarComponent {
     {
       name: '切换到 Side',
       url: '/side'
+    },
+    {
+      name: '切换到 App',
+      url: '/app'
     }
   ]
 
@@ -54,8 +60,7 @@ export class FixbarComponent {
 
   ngOnInit() {
     if (isDarkFn()) {
-      document.body.classList.add('dark-container')
-      this.toggleZorroDark(true)
+      document.documentElement.classList.add('dark-container')
     }
 
     const url = this.router.url.split('?')[0]
@@ -90,26 +95,12 @@ export class FixbarComponent {
       nzOkText: '知道了',
       nzContent: `
         <p>Token: ${getToken()}</p>
+        <p>部署分支: ${config.branch}</p>
         <p>上次构建时间: ${date || '未知'}</p>
         <p>当前版本: <img src="https://img.shields.io/badge/release-v${VERSION}-red.svg?longCache=true&style=flat-square"></p>
         <p>最新版本: <img src="https://img.shields.io/github/v/release/xjh22222228/nav" /></p>
       `,
     });
-  }
-
-  toggleZorroDark(dark: boolean) {
-    if (dark) {
-      const link = document.createElement('link')
-      link.rel = 'stylesheet'
-      link.href = '/assets/ng-zorro-antd.dark.css'
-      link.className = 'NG-ZORRO-DARK'
-      document.body.append(link)
-    } else {
-      const findLink = document.querySelectorAll('.NG-ZORRO-DARK')
-      findLink.forEach(child => {
-        child.parentNode.removeChild(child)
-      })
-    }
   }
 
   toggleTheme(theme) {
@@ -148,16 +139,14 @@ export class FixbarComponent {
 
   toggleMode() {
     this.isDark = !this.isDark
-    window.localStorage.setItem('IS_DARK', String(Number(this.isDark)))
-    document.body.classList.toggle('dark-container')
+    window.localStorage.setItem(STORAGE_KEY_MAP.isDark, String(Number(this.isDark)))
+    document.documentElement.classList.toggle('dark-container')
 
     if (this.isDark) {
       this.removeBackground()
-      this.toggleZorroDark(true)
     } else {
       const { data } = this.activatedRoute.snapshot
       data?.renderLinear && randomBgImg()
-      this.toggleZorroDark(false)
     }
   }
 
@@ -193,7 +182,7 @@ export class FixbarComponent {
         })
         .catch(res => {
           this.notification.error(
-            `错误: ${res?.response?.status ?? 401}`,
+            `错误: ${res?.response?.status ?? 1401}`,
             '同步失败, 请重试'
           )
         })
