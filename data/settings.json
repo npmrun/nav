@@ -5,7 +5,7 @@
   "language": "zh-CN",
   "loading": "random",
   "description": "北斗-指引黑暗中方向的明灯",
-  "keywords": "北斗导航,前端资源,实用工具,学习资源,运营,网络安全,node.js",
+  "keywords": "北斗导航,前端资源,实用工具,学习资源,node.js",
   "footerContent": "\n<div style=\"font-weight: bold;\">共收录${total}个网站</div>\n<div>Copyright © 2018-2021 nav3.cn, All Rights Reserved</div>\n",
   "theme": "Light",
   "appTheme": "App",
