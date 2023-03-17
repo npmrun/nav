@@ -16,6 +16,9 @@ jobs:
       uses: sergioramos/yarn-actions/install@v6
       with:
         frozen-lockfile: true
+    - name: Set NODE_OPTIONS
+      run: |
+        export NODE_OPTIONS=--openssl-legacy-provider
     - name: Build
       run: |
         npm run build
